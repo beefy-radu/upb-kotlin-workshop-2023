@@ -1,5 +1,6 @@
 package session6
 
+import session7.Entry
 import java.util.*
 
 // Enum Classes
@@ -316,6 +317,18 @@ fun main(args: Array<String>) {
 //    "Outside of Scope".scoped() // Does not compile
     aNewScope()
 }
+
+// eye-candy - sugar-code
+// extensions functions are useful for final types => types that cannot be extended
+// In Java we don't have String.capitalize()
+// So, what did we in Java before Kotlin added extension functions?
+//public static String capitalize(String string) {
+//
+//}
+//
+//"radu".capitalize() <=> capitalize("radu")
+//fun String.capitalize()
+
 
 // Bibliography
 // https://kotlinlang.org/docs/classes.html (up until Inheritance)
