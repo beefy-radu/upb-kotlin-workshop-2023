@@ -20,14 +20,14 @@ import kotlin.test.*
 // @AfterEach   => runs after each test
 // @AfterAll    => runs after all tests
 
-class EngineTest {
+class FuelEngineTest {
     private lateinit var battery: Battery
     private lateinit var engine: Engine
 
     @BeforeEach
     fun setUp() {
         battery = mockk()
-        engine = Engine(battery)
+        engine = FuelEngine(battery)
     }
 
     @Test

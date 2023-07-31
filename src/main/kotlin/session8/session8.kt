@@ -1,5 +1,6 @@
 package session8
 
+import java.io.PrintStream
 import java.lang.IllegalStateException
 import kotlin.RuntimeException
 
@@ -27,9 +28,10 @@ import kotlin.RuntimeException
 
 fun main() {
     // Manual dependency injection
-    val battery = Battery()
-    val engine = Engine(battery)
-    val car = Car(battery, engine)
+    val console: Console = ConsoleImpl()
+    val battery = Battery(console = console)
+    val engine = FuelEngine(battery, console)
+    val car = Car(battery, engine, console)
 
     // this can be automated: dependency injection framewoks (Dagger, Koin, Kodein)
 
@@ -57,7 +59,8 @@ class CarBatteryDeadException : RuntimeException("Car battery is dead")
 
 class Car(
     private val battery: Battery,
-    private val engine: Engine
+    private val engine: Engine,
+    private val console: Console
     )
 {
     var speed: Int = 0
@@ -67,9 +70,7 @@ class Car(
         get() = battery.capacity > 0    // Law of Demeter
 
     fun start() {
-        if (engine.running) {
-            throw CarAlreadyStartedException()
-        }
+        engine.ignite()
         try {
             engine.start()
         } catch(exception: IllegalStateException) {
@@ -104,27 +105,39 @@ class Car(
     }
 
     private fun printSpeed() {
-        repeat(speed) {
-            print("\uD83D\uDE97")
+        console.print { stream ->
+            repeat(speed) {
+                stream.print("\uD83D\uDE97")
+            }
+            stream.println()
         }
-        println()
     }
 
     private fun printStop() {
-        println("\uD83D\uDED1")
+        console.print {
+            println("\uD83D\uDED1")
+        }
     }
 }
 
-class Engine(private val battery: Battery) {
+// ElectricEngine vs FuelEngine
+
+abstract class Engine(private val battery: Battery, private val console: Console) {
     var running: Boolean = false
         private set
 
-    fun start() {
+    open fun ignite() {
+        if (running) {
+            throw CarAlreadyStartedException()
+        }
+    }
+
+    open fun start() {
         if (!battery.spark()) {
             throw IllegalStateException("Battery is dead")
         }
         running = true
-        println("\uD83D\uDD25")
+        console.print { it.println("\uD83D\uDD25") }
     }
 
     fun stop() {
@@ -132,7 +145,47 @@ class Engine(private val battery: Battery) {
     }
 }
 
-class Battery(initialCapacity: Int = MAX_CAPACITY) {
+class ElectricEngine(private val battery: Battery, console: Console) : Engine(battery, console) {
+    override fun ignite() {
+        // We can do this as many times as we want
+    }
+
+    override fun start() {
+        super.start()
+        battery.spark()
+    }
+}
+
+class FuelEngine(battery: Battery, console: Console) : Engine(battery, console) {
+    var fuel: Int = 0
+        private set
+
+    fun fill(quantity: Int) {
+        fuel += quantity
+    }
+
+    override fun start() {
+        if (fuel <= 0) {
+            throw IllegalStateException("Out of gas")
+        } else {
+            fuel--
+        }
+        super.start()
+    }
+}
+
+
+interface Console {
+    fun print(block: (PrintStream) -> Unit)
+}
+
+class ConsoleImpl : Console {
+    override fun print(block: (PrintStream) -> Unit) {
+        block(System.out)
+    }
+}
+
+class Battery(initialCapacity: Int = MAX_CAPACITY, private val console: Console) {
 //    var capacity: Int = 20  // Never use magic constants
 //        private set
     var capacity: Int = initialCapacity
@@ -149,10 +202,12 @@ class Battery(initialCapacity: Int = MAX_CAPACITY) {
     }
 
     private fun printSparks() {
-        repeat(capacity) {
-            print("\uD83D\uDD0B")
+        console.print { stream: PrintStream ->
+            repeat(capacity) {
+                stream.print("\uD83D\uDD0B")
+            }
+            stream.println()
         }
-        println()
     }
 
     companion object {
